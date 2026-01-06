@@ -1,0 +1,23 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pytest
+.pytest_cache/
+.cache/
+
+# virtual environments
+.venv/
+venv/
+env/
+
+# coverage
+.coverage
+htmlcov/
+
+# local env
+.env
+
+# mypy
+.mypy_cache/
