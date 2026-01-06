@@ -99,4 +99,125 @@ def parse_size(
     - negative handling policy + strict vs permissive behavior
     - rounding behavior for fractional bytes
     """
-    raise NotImplementedError("parse_size is not implemented yet")
+    import re
+    import math
+
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+
+    s = text.strip()
+    if not s:
+        raise ValueError("empty string")
+
+    # Capture sign, numeric part, and optional unit (letters)
+    m = re.match(r"^([+-]?)([0-9][0-9_,]*(?:\.[0-9][0-9_,]*)?|\.[0-9][0-9_,]*)(?:\s*([A-Za-z]+))?$", s)
+    if not m:
+        raise ValueError(f"invalid size string: {text!r}")
+
+    sign_s, num_s, unit_s = m.groups()
+
+    # Thousands separator handling
+    if ("," in num_s or "_" in num_s) and not allow_thousands_separator:
+        raise ValueError("thousands separators not allowed")
+
+    num_clean = num_s.replace(",", "").replace("_", "")
+
+    try:
+        num = float(num_clean)
+    except ValueError:
+        raise ValueError(f"invalid numeric value: {num_clean!r}")
+
+    if math.isnan(num) or math.isinf(num):
+        raise ValueError("invalid numeric value: NaN or Inf not allowed")
+
+    if sign_s == "-":
+        num = -num
+
+    # Units
+    if unit_s is None:
+        # No unit -> bytes
+        base = 1
+        exp = 0
+    else:
+        u = unit_s.strip()
+        if not u:
+            base = 1
+            exp = 0
+        else:
+            ul = u.lower()
+            # bytes
+            if ul in ("b", "byte", "bytes"):
+                base = 1
+                exp = 0
+            else:
+                # Check for explicit binary: kib, mib, gib, tib, pib (accept 'ki', 'kib')
+                if ul.startswith("ki") or ul.startswith("kib") or ul.startswith("mi") or ul.startswith("mib") or ul.startswith("gi") or ul.startswith("gib") or ul.startswith("ti") or ul.startswith("tib") or ul.startswith("pi") or ul.startswith("pib"):
+                    # e.g., kib, KiB
+                    prefix = ul[0]
+                    exp = {
+                        "k": 1,
+                        "m": 2,
+                        "g": 3,
+                        "t": 4,
+                        "p": 5,
+                    }[prefix]
+                    base = 1024
+                else:
+                    # Endswith 'b' (kB, MB, etc.) -> decimal
+                    if ul.endswith("b") and len(ul) >= 2:
+                        prefix = ul[0]
+                        if prefix not in "kmgtp":
+                            raise ValueError(f"unknown unit: {unit_s!r}")
+                        exp = {
+                            "k": 1,
+                            "m": 2,
+                            "g": 3,
+                            "t": 4,
+                            "p": 5,
+                        }[prefix]
+                        base = 1000
+                    else:
+                        # Possibly GNU one-letter suffix like K/M/G
+                        if len(ul) == 1 and ul in "kmgtp":
+                            if strict and not default_gnu:
+                                raise ValueError(f"ambiguous GNU unit: {unit_s!r}")
+                            exp = {
+                                "k": 1,
+                                "m": 2,
+                                "g": 3,
+                                "t": 4,
+                                "p": 5,
+                            }[ul]
+                            base = 1024 if default_binary else 1000
+                        else:
+                            raise ValueError(f"unknown unit: {unit_s!r}")
+
+    # Compute bytes (float)
+    try:
+        multiplier = float(base) ** exp
+        raw = num * multiplier
+    except OverflowError:
+        raise OverflowError("value too large")
+
+    if math.isnan(raw) or math.isinf(raw):
+        raise ValueError("resulting bytes value is not finite")
+
+    # Negative handling
+    if raw < 0 and strict:
+        raise ValueError("negative values are not allowed in strict mode")
+
+    # Apply rounding
+    if rounding == "floor":
+        b = math.floor(raw)
+    elif rounding == "ceil":
+        b = math.ceil(raw)
+    elif rounding == "nearest":
+        # Round half away from zero
+        if raw >= 0:
+            b = math.floor(raw + 0.5)
+        else:
+            b = math.ceil(raw - 0.5)
+    else:
+        raise ValueError(f"invalid rounding mode: {rounding!r}")
+
+    return int(b)
