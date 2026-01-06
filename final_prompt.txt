@@ -5,7 +5,15 @@ You are working in a local Python project. The existing codebase only provides:
 - an unimplemented mini_humanize.parse_size,
 - and a CLI skeleton (python -m mini_humanize).
 
-Your task is to deliver a complete, shippable mini engineering project. The deliverables must include:
+Your task is to deliver a complete, shippable mini engineering project. 
+
+CRITICAL: After implementation, you MUST verify that tests actually pass in the actual environment by:
+1. Installing the package in editable mode (pip install -e .)
+2. Running the test script (python run_tests) 
+3. If tests fail, diagnose and fix issues until all tests pass
+4. Confirm the final test results show all tests passing
+
+The deliverables must include:
 
 1) README.md  
    - Describe the Python APIs (naturalsize / parse_size), including their purpose and parameters  
@@ -40,8 +48,7 @@ Your task is to deliver a complete, shippable mini engineering project. The deli
 6) Final output requirements  
    - List all files you added or modified  
    - Provide the exact command you used to run the one-click test script  
-   - Paste the pytest summary output (at minimum including the “passed” line)
-
+   - Paste the pytest summary output (at minimum including the “passed” line)   - VERIFY: Confirm that all tests actually pass in your environment (not just claimed to pass)
 --------------------------------
 Functional requirements (no explicit expected output table is provided; you must define clear rules and document them in README):
 
@@ -101,3 +108,4 @@ Constraints:
 
 - You must not introduce third-party dependencies beyond pytest / pytest-cov
 - Type annotations must be preserved (at minimum for function signatures and key internal structures)
+- Before reporting completion, you MUST ensure the package is properly installed (pip install -e .) and all tests pass when run with the test script
