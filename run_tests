@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+"""One-click test runner for mini_humanize."""
+
+import subprocess
+import sys
+import venv
+import os
+from pathlib import Path
+
+
+def main():
+    """Install dependencies and run tests."""
+    # Get the project root directory
+    project_root = Path(__file__).parent.absolute()
+    
+    # Create a temporary virtual environment
+    venv_dir = project_root / ".venv_test"
+    
+    # Create venv if it doesn't exist
+    print(f"Setting up test environment in {venv_dir}...")
+    if not venv_dir.exists():
+        venv.create(venv_dir, with_pip=True)
+    
+    # Determine the Python executable in the venv
+    if sys.platform == "win32":
+        python_exe = venv_dir / "Scripts" / "python.exe"
+        pip_exe = venv_dir / "Scripts" / "pip.exe"
+    else:
+        python_exe = venv_dir / "bin" / "python"
+        pip_exe = venv_dir / "bin" / "pip"
+    
+    # Install dependencies
+    print("Installing dependencies...")
+    subprocess.run(
+        [str(pip_exe), "install", "-q", "pytest>=8.0.0", "pytest-cov>=5.0.0"],
+        check=True,
+    )
+    
+    # Install the project in editable mode
+    print("Installing mini_humanize...")
+    subprocess.run(
+        [str(pip_exe), "install", "-q", "-e", str(project_root)],
+        check=True,
+    )
+    
+    # Run pytest
+    print("\nRunning tests...\n")
+    result = subprocess.run(
+        [str(python_exe), "-m", "pytest", "tests/", "-v"],
+        cwd=str(project_root),
+    )
+    
+    return result.returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main())

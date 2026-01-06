@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass
 from typing import Literal, Union
 
@@ -90,13 +92,135 @@ def parse_size(
 ) -> int:
     """
     Parse human-readable size string into bytes.
-
-    Intentionally left incomplete. Agent must implement:
-    - decimal + binary units, with and without spaces
-    - KiB/MiB... vs kB/MB...
-    - GNU suffixes K/M/G/T/P with ambiguity controlled by defaults
-    - optional thousands separators
-    - negative handling policy + strict vs permissive behavior
-    - rounding behavior for fractional bytes
+    
+    Args:
+        text: Size string to parse (e.g., "1.5 GB", "512MB", "10K")
+        default_binary: If True, treat ambiguous units as binary (base 1024)
+        default_gnu: If True, treat ambiguous units (e.g., "K") as GNU-style
+        allow_thousands_separator: If True, allow ',' or '_' in number
+        rounding: How to round fractional bytes: "floor", "nearest", or "ceil"
+        strict: If True, reject ambiguities; if False, use defaults
+    
+    Returns:
+        Size in bytes as an integer
+        
+    Raises:
+        ValueError: Invalid string, unknown unit, or empty string
+        OverflowError: Value exceeds integer limits
     """
-    raise NotImplementedError("parse_size is not implemented yet")
+    if not text or not isinstance(text, str):
+        raise ValueError("Input must be a non-empty string")
+    
+    # Strip leading/trailing whitespace
+    text = text.strip()
+    
+    if not text:
+        raise ValueError("Input string is empty or whitespace only")
+    
+    # Normalize: remove thousands separators if allowed
+    if allow_thousands_separator:
+        text = text.replace(",", "").replace("_", "")
+    
+    # Pattern: optional sign, number (with optional decimal), optional whitespace, optional unit
+    # This pattern allows: -1.5 GB, 512MB, 10 K, 1,024B (if allowed), etc.
+    pattern = r"^\s*([+-]?)(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)?\s*$"
+    match = re.match(pattern, text)
+    
+    if not match:
+        raise ValueError(f"Invalid size format: '{text}'")
+    
+    sign_str, number_str, unit_str = match.groups()
+    
+    # Replace comma with dot for float parsing (thousands separator already handled)
+    number_str = number_str.replace(",", ".")
+    
+    try:
+        value = float(number_str)
+    except ValueError:
+        raise ValueError(f"Invalid number: '{number_str}'")
+    
+    # Handle negative values
+    if sign_str == "-":
+        value = -value
+    
+    if value < 0:
+        raise ValueError("Negative size values are not supported")
+    
+    # Handle NaN/inf
+    if math.isnan(value) or math.isinf(value):
+        raise ValueError("NaN and infinity are not supported")
+    
+    # No unit means bytes
+    if not unit_str:
+        unit_str = "B"
+    
+    # Normalize unit case for matching
+    unit_original = unit_str
+    unit_lower = unit_str.lower()
+    
+    # Define unit multipliers
+    # Decimal (base 1000)
+    decimal_units = {
+        "b": 1,
+        "kb": 1_000,
+        "mb": 1_000_000,
+        "gb": 1_000_000_000,
+        "tb": 1_000_000_000_000,
+        "pb": 1_000_000_000_000_000,
+    }
+    
+    # Binary (base 1024)
+    binary_units = {
+        "b": 1,
+        "kib": 1024,
+        "mib": 1024 ** 2,
+        "gib": 1024 ** 3,
+        "tib": 1024 ** 4,
+        "pib": 1024 ** 5,
+    }
+    
+    # GNU-style single letters (ambiguous: could be decimal or binary)
+    gnu_units = {
+        "b": 1,
+        "k": 1024 if default_binary else 1000,
+        "m": (1024 ** 2) if default_binary else (1000 ** 2),
+        "g": (1024 ** 3) if default_binary else (1000 ** 3),
+        "t": (1024 ** 4) if default_binary else (1000 ** 4),
+        "p": (1024 ** 5) if default_binary else (1000 ** 5),
+    }
+    
+    multiplier = None
+    
+    # Try to match unit
+    if unit_lower in decimal_units:
+        multiplier = decimal_units[unit_lower]
+    elif unit_lower in binary_units:
+        multiplier = binary_units[unit_lower]
+    elif unit_lower in gnu_units:
+        # GNU-style unit
+        if strict and not default_gnu:
+            raise ValueError(
+                f"Ambiguous unit '{unit_original}' in strict mode. Use explicit units like 'KB'/'KiB' "
+                f"or enable default_gnu=True"
+            )
+        multiplier = gnu_units[unit_lower]
+    else:
+        raise ValueError(f"Unknown unit: '{unit_original}'")
+    
+    # Calculate bytes
+    bytes_value = value * multiplier
+    
+    # Apply rounding
+    if rounding == "floor":
+        result = int(math.floor(bytes_value))
+    elif rounding == "ceil":
+        result = int(math.ceil(bytes_value))
+    else:  # "nearest"
+        result = int(round(bytes_value))
+    
+    # Check for overflow
+    if result > 2**63 - 1:
+        raise OverflowError(f"Size value {result} exceeds maximum integer")
+    
+    return result
+
