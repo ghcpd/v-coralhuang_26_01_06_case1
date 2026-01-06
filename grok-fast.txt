@@ -1,0 +1,203 @@
+User: You are a senior Python infrastructure/library engineer. Your day-to-day work involves API design, backward compatibility, CLI tools, testing engineering, and edge-case handling. You are expected to approach the following task as you would in a real engineering environment.
+
+You are working in a local Python project. The existing codebase only provides:
+- mini_humanize.naturalsize (may be refactored/optimized),
+- an unimplemented mini_humanize.parse_size,
+- and a CLI skeleton (python -m mini_humanize).
+
+Your task is to deliver a complete, shippable mini engineering project. The deliverables must include:
+
+1) README.md  
+   - Describe the Python APIs (naturalsize / parse_size), including their purpose and parameters  
+   - Describe CLI usage with examples  
+   - Clearly document how ambiguous inputs are interpreted, error-handling policies, and rounding rules  
+   - Provide exactly one command that runs the full test suite (“one-click test”)  
+
+2) tests/ directory (pytest)  
+   - You must design the test structure and test cases yourself  
+   - Tests must cover the key behavioral dimensions listed below  
+
+3) One-click test script: run_tests  
+   - The file name must be exactly `run_tests` (no extension)  
+   - You must create this script  
+   - The script must be runnable repeatedly in any clean environment  
+   - If required dependencies are missing, the script must install them before running tests  
+   - The script does NOT need to reuse any previously created virtual environment, and it must not assume a specific environment management strategy  
+   - The script must ultimately:
+     - run pytest successfully, or
+     - exit with a non-zero status code on failure  
+   - README.md must clearly state the command used to run this script  
+
+4) Code implementation  
+   - You must fully implement parse_size  
+   - You must ensure that naturalsize preserves its default behavior (backward compatibility)  
+   - You may refactor internal logic to improve readability or performance  
+
+5) Version-control hygiene  
+   - If the project generates files or directories that should be ignored (e.g., virtual environments, caches, build artifacts, test outputs), you must generate a proper .gitignore  
+   - The contents of .gitignore must reflect what the project actually produces  
+
+6) Final output requirements  
+   - List all files you added or modified  
+   - Provide the exact command you used to run the one-click test script  
+   - Paste the pytest summary output (at minimum including the “passed” line)
+
+--------------------------------
+Functional requirements (no explicit expected output table is provided; you must define clear rules and document them in README):
+
+- parse_size:
+  - Support both decimal and binary unit systems
+  - Support kB/MB/... as well as KiB/MiB/...
+  - Support GNU-style units: K/M/G/T/P
+  - Allow optional whitespace and mixed letter case
+  - Support fractional values
+
+- Ambiguity handling:
+  - Ambiguities such as GNU suffixes, missing units, or mixed case
+  - Must be resolved jointly by default_binary / default_gnu / strict parameters
+  - The behavioral difference between strict=True and strict=False must be explicit, predictable, and testable
+
+- Numeric and error handling:
+  - Optional support for thousands separators
+  - Clear policies for invalid strings, unknown units, empty strings, NaN/inf, overflow, and negative values
+  - rounding=floor|nearest|ceil must take effect when converting fractional values to bytes
+
+--------------------------------
+Testing requirements (you must cover the following dimensions; concrete test cases are up to you):
+
+A. Normal paths  
+   - All units covered
+   - Decimal / binary
+   - GNU / non-GNU
+   - With and without whitespace
+   - Mixed case
+   - Fractional values
+
+B. Edge cases and errors  
+   - Invalid strings
+   - Unknown units
+   - Empty strings
+   - Extremely large values
+   - NaN / inf
+   - Negative-value policy
+   - Acceptance and rejection of thousands separators
+
+C. Consistency properties  
+   - Define and test at least one round-trip consistency rule
+   - For example: parse_size(naturalsize(x, ...)) holds within a defined tolerance
+   - Or strict reversibility under specific parameter combinations
+
+D. CLI tests  
+   - At least 2 tests for the format subcommand
+   - At least 2 tests for the parse subcommand
+   - subprocess-based testing of `python -m mini_humanize ...` is recommended
+
+E. Regression protection  
+   - Write assertions that lock in key naturalsize outputs when strip_trailing_zeros=False
+   - Ensure refactoring does not break backward compatibility
+
+--------------------------------
+Constraints:
+
+- You must not introduce third-party dependencies beyond pytest / pytest-cov
+- Type annotations must be preserved (at minimum for function signatures and key internal structures)
+
+
+GitHub Copilot: Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/src/mini_humanize/__init__.py)
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/src/mini_humanize/sizecodec.py#1-1), lines 1 to 100
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/src/mini_humanize/sizecodec.py#101-101), lines 101 to 103
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/src/mini_humanize/__main__.py#1-1), lines 1 to 50
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/src/mini_humanize/__main__.py#51-51), lines 51 to 60
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/pyproject.toml)
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/tests)
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/tests/__init__.py)
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/tests/test_sizecodec.py)
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/README.md)
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/run_tests)
+
+Created [](file:///c%3A/Bug_Bash/26_01_06/1/grok-fast/.gitignore)
+
+Configuring a Python Environment
+Completed with input: {
+  "resourcePath": "c:\\Bug_Bash\\26_01_06\\1\\grok-fast"
+}
+
+Ran terminal command: python -m pip install -e .
+
+Ran terminal command: python run_tests
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Ran terminal command: python run_tests
+
+Ran terminal command: python -m mini_humanize format 1000
+
+Ran terminal command: python -m mini_humanize parse "1 kB"
+
+## Summary
+
+I have successfully completed the mini_humanize project. Here are the deliverables:
+
+### Files Added or Modified
+
+1. **Modified:** sizecodec.py - Fully implemented `parse_size` function with support for decimal/binary/GNU units, ambiguity handling, error policies, and rounding.
+
+2. **Added:** __init__.py - Empty init file for test package.
+
+3. **Added:** test_sizecodec.py - Comprehensive pytest test suite covering:
+   - Normal paths (all units, binary/decimal/GNU, whitespace/case, fractional values)
+   - Edge cases (invalid strings, unknown units, empty strings, NaN/inf, large values, thousands separators)
+   - Consistency properties (round-trip testing)
+   - CLI tests (subprocess-based testing of format and parse commands)
+   - Regression protection (locked-in naturalsize outputs)
+
+4. **Added:** README.md - Complete documentation including:
+   - API descriptions with parameters and examples
+   - CLI usage with examples
+   - Ambiguity handling rules
+   - Error-handling policies
+   - Rounding rules
+   - One-click test command
+
+5. **Added:** run_tests - Executable script that:
+   - Installs pytest/pytest-cov if missing
+   - Runs pytest successfully
+   - Exits with non-zero status on failure
+
+6. **Added:** .gitignore - Standard Python gitignore including cache directories, build artifacts, and virtual environments.
+
+### Test Results
+
+**Command used:** `python run_tests`
+
+**Pytest summary:** 33 passed in 0.77s
+
+The implementation preserves backward compatibility for `naturalsize` and provides a complete, robust `parse_size` with clear ambiguity resolution via the `default_binary`/`default_gnu`/`strict` parameters. All functional requirements are met, including edge-case handling, CLI integration, and comprehensive testing.
+
+Made changes.
+
+Similar code found with 2 license types
