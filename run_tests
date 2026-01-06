@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""One-click test runner. Installs test deps if necessary then runs pytest."""
+from __future__ import annotations
+
+import importlib
+import subprocess
+import sys
+
+
+def ensure_pkg(pkg: str) -> None:
+    try:
+        importlib.import_module(pkg)
+    except Exception:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
+
+def main() -> int:
+    ensure_pkg("pytest")
+    ensure_pkg("pytest_cov")
+
+    cmd = [sys.executable, "-m", "pytest", "-q"]
+    r = subprocess.run(cmd)
+    return r.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

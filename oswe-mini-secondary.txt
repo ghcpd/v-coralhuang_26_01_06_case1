@@ -1,0 +1,246 @@
+User: You are a senior Python infrastructure/library engineer. Your day-to-day work involves API design, backward compatibility, CLI tools, testing engineering, and edge-case handling. You are expected to approach the following task as you would in a real engineering environment.
+
+You are working in a local Python project. The existing codebase only provides:
+- mini_humanize.naturalsize (may be refactored/optimized),
+- an unimplemented mini_humanize.parse_size,
+- and a CLI skeleton (python -m mini_humanize).
+
+Your task is to deliver a complete, shippable mini engineering project. The deliverables must include:
+
+1) README.md  
+   - Describe the Python APIs (naturalsize / parse_size), including their purpose and parameters  
+   - Describe CLI usage with examples  
+   - Clearly document how ambiguous inputs are interpreted, error-handling policies, and rounding rules  
+   - Provide exactly one command that runs the full test suite (“one-click test”)  
+
+2) tests/ directory (pytest)  
+   - You must design the test structure and test cases yourself  
+   - Tests must cover the key behavioral dimensions listed below  
+
+3) One-click test script: run_tests  
+   - The file name must be exactly `run_tests` (no extension)  
+   - You must create this script  
+   - The script must be runnable repeatedly in any clean environment  
+   - If required dependencies are missing, the script must install them before running tests  
+   - The script does NOT need to reuse any previously created virtual environment, and it must not assume a specific environment management strategy  
+   - The script must ultimately:
+     - run pytest successfully, or
+     - exit with a non-zero status code on failure  
+   - README.md must clearly state the command used to run this script  
+
+4) Code implementation  
+   - You must fully implement parse_size  
+   - You must ensure that naturalsize preserves its default behavior (backward compatibility)  
+   - You may refactor internal logic to improve readability or performance  
+
+5) Version-control hygiene  
+   - If the project generates files or directories that should be ignored (e.g., virtual environments, caches, build artifacts, test outputs), you must generate a proper .gitignore  
+   - The contents of .gitignore must reflect what the project actually produces  
+
+6) Final output requirements  
+   - List all files you added or modified  
+   - Provide the exact command you used to run the one-click test script  
+   - Paste the pytest summary output (at minimum including the “passed” line)
+
+--------------------------------
+Functional requirements (no explicit expected output table is provided; you must define clear rules and document them in README):
+
+- parse_size:
+  - Support both decimal and binary unit systems
+  - Support kB/MB/... as well as KiB/MiB/...
+  - Support GNU-style units: K/M/G/T/P
+  - Allow optional whitespace and mixed letter case
+  - Support fractional values
+
+- Ambiguity handling:
+  - Ambiguities such as GNU suffixes, missing units, or mixed case
+  - Must be resolved jointly by default_binary / default_gnu / strict parameters
+  - The behavioral difference between strict=True and strict=False must be explicit, predictable, and testable
+
+- Numeric and error handling:
+  - Optional support for thousands separators
+  - Clear policies for invalid strings, unknown units, empty strings, NaN/inf, overflow, and negative values
+  - rounding=floor|nearest|ceil must take effect when converting fractional values to bytes
+
+--------------------------------
+Testing requirements (you must cover the following dimensions; concrete test cases are up to you):
+
+A. Normal paths  
+   - All units covered
+   - Decimal / binary
+   - GNU / non-GNU
+   - With and without whitespace
+   - Mixed case
+   - Fractional values
+
+B. Edge cases and errors  
+   - Invalid strings
+   - Unknown units
+   - Empty strings
+   - Extremely large values
+   - NaN / inf
+   - Negative-value policy
+   - Acceptance and rejection of thousands separators
+
+C. Consistency properties  
+   - Define and test at least one round-trip consistency rule
+   - For example: parse_size(naturalsize(x, ...)) holds within a defined tolerance
+   - Or strict reversibility under specific parameter combinations
+
+D. CLI tests  
+   - At least 2 tests for the format subcommand
+   - At least 2 tests for the parse subcommand
+   - subprocess-based testing of `python -m mini_humanize ...` is recommended
+
+E. Regression protection  
+   - Write assertions that lock in key naturalsize outputs when strip_trailing_zeros=False
+   - Ensure refactoring does not break backward compatibility
+
+--------------------------------
+Constraints:
+
+- You must not introduce third-party dependencies beyond pytest / pytest-cov
+- Type annotations must be preserved (at minimum for function signatures and key internal structures)
+
+
+GitHub Copilot: Optimizing tool selection...I'm going to inspect the project files to see the current implementation and tests; next step is to open sizecodec.py and `__main__.py`.
+
+Searched for files matching `**/*`, 5 matches
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/v-coralhuang_26_01_06_case1/src/mini_humanize/sizecodec.py)
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/v-coralhuang_26_01_06_case1/src/mini_humanize/__main__.py)
+
+Read [](file:///c%3A/Bug_Bash/26_01_06/v-coralhuang_26_01_06_case1/src/mini_humanize/__init__.py)
+
+Perfect! I will implement `parse_size`, add tests, README, `.gitignore`, and the `run_tests` script, then run the tests. Proceeding to apply the changes now.
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+
+
+Using "Apply Patch"
+
+
+```
+
+```
+Perfect! The implementation and tests are added; my next step is to run the full test suite using the run_tests script.
+
+Ran terminal command: python run_tests
+
+Ran terminal command: python -m pytest -r a
+
+Wrap-up: I implemented `parse_size`, added tests, a README, .gitignore, and a one-click run_tests script; next step is to summarize changes and show how to run the tests.
+
+## What I changed / added ✅
+
+Files added
+- README.md — API and CLI documentation, ambiguity & rounding rules, one-click command
+- run_tests — one-click test runner (Python script that installs test deps if needed)
+- .gitignore — common Python/test artifacts
+- test_parse.py — unit tests for parsing behavior, rounding, separators, errors
+- test_cli.py — subprocess tests for `python -m mini_humanize` CLI (format & parse)
+- test_naturalsize_regress.py — regression-lock tests for `naturalsize` outputs
+
+Files modified
+- sizecodec.py — fully implemented `parse_size` (preserved `naturalsize` behavior)
+
+## Key implementation details 🔧
+
+- parse_size(text, *, default_binary=False, default_gnu=False, allow_thousands_separator=False, rounding='nearest', strict=True) -> int
+  - Accepts numeric strings (supports decimals and scientific notation).
+  - Supports decimal units kB/MB/... (1000^n) and binary KiB/MiB/... (1024^n).
+  - Supports GNU single-letter suffixes K/M/G/T/P. If `default_gnu=False` and `strict=True`, single-letter suffixes are treated as ambiguous and raise `ValueError`. If permissive (`strict=False`) or `default_gnu=True`, they are resolved using `default_binary`.
+  - `allow_thousands_separator` lets `,` and `_` appear in numbers (otherwise raises `ValueError`).
+  - Fractional values are supported; `rounding` controls conversion to integer bytes: `floor`, `nearest` (ties away from zero), `ceil`.
+  - `strict=True` rejects negative sizes and ambiguous GNU units; `strict=False` permits negatives and resolves ambiguity using `default_binary`.
+  - Invalid inputs (empty string, nan/inf, unknown units) raise `ValueError`.
+
+- naturalsize behavior preserved:
+  - Existing format outputs (e.g., `"1.5 KiB"` for 1536 with `binary=True`) are kept; regression tests lock a couple of canonical outputs.
+
+## Tests added ✅
+
+Coverage highlights:
+- All unit forms: `kB/MB/...`, `KiB/MiB/...`, GNU `K/M/...` (ambiguous), case-insensitive
+- Fractional values and explicit rounding modes (floor, nearest, ceil)
+- Thousands separators accepted/rejected per flag
+- Error cases: empty, invalid numeric, unknown unit, NaN/Inf
+- Negative handling under `strict` and permissive modes
+- Large value parsing (no overflow)
+- Round-trip consistency (e.g., `naturalsize(1536, binary=True)` -> parse back to 1536)
+- CLI tests: two format tests and two parse tests (including ambiguous parse failing in strict mode)
+- Regression assertions locking key `naturalsize` outputs
+
+## One-click test script
+
+- Command to run the full test suite (exact command shown in README and used here):
+
+  python run_tests
+
+- The script installs `pytest` and `pytest-cov` if missing, then runs pytest and exits with the appropriate status code.
+
+## Test run I executed
+
+Command used:
+- python run_tests
+
+Pytest summary (captured):
+
+14 passed in 0.52s
+
+---
+
+If you want, I can:
+- Add additional tests (e.g., more tolerance-based round-trip checks),
+- Expand docs with more examples, or
+- Add CI configuration (GitHub Actions) to run the tests automatically.
+
+Would you like me to open a PR-style diff or make any adjustments to the behavior/documentation?
+
+Made changes.
