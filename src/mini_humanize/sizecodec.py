@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal, Union
+import re
+import math
 
 NumberOrString = Union[int, float, str]
 RoundingMode = Literal["floor", "nearest", "ceil"]
@@ -91,12 +93,110 @@ def parse_size(
     """
     Parse human-readable size string into bytes.
 
-    Intentionally left incomplete. Agent must implement:
-    - decimal + binary units, with and without spaces
-    - KiB/MiB... vs kB/MB...
-    - GNU suffixes K/M/G/T/P with ambiguity controlled by defaults
-    - optional thousands separators
-    - negative handling policy + strict vs permissive behavior
-    - rounding behavior for fractional bytes
+    Supports:
+    - Decimal units: B, kB, MB, GB, TB, PB
+    - Binary units: B, KiB, MiB, GiB, TiB, PiB
+    - GNU units: B, K, M, G, T, P (base depends on default_binary)
+    - Optional whitespace and mixed case
+    - Fractional values
+    - Optional thousands separators (commas) if allow_thousands_separator=True
+
+    Ambiguity handling:
+    - Full units (kB, KiB, etc.) are unambiguous and always accepted.
+    - Short GNU units (K, M, etc.) are accepted only if default_gnu=True.
+      When accepted, the base (1000 or 1024) is determined by default_binary.
+    - If default_gnu=False and a short unit is encountered, raises ValueError if strict=True.
+    - No unit means bytes.
+
+    Error handling:
+    - Invalid strings: ValueError
+    - Unknown units: ValueError if strict=True, else assume bytes
+    - Empty strings: ValueError
+    - NaN/inf values: ValueError
+    - Negative values: allowed (returns negative bytes)
+
+    Rounding: applied to fractional byte values.
     """
-    raise NotImplementedError("parse_size is not implemented yet")
+    text = text.strip()
+    if not text:
+        raise ValueError("Empty string")
+
+    # Regex for number and unit
+    if allow_thousands_separator:
+        # Allow commas in number
+        num_pattern = r'[+-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?'
+    else:
+        num_pattern = r'[+-]?(?:\d+(?:\.\d+)?)'
+    
+    match = re.match(rf'^({num_pattern})\s*([a-zA-Z]*)$', text)
+    if not match:
+        raise ValueError(f"Invalid size string: {text}")
+    
+    num_str, unit = match.groups()
+    if allow_thousands_separator:
+        num_str = num_str.replace(',', '')
+    
+    try:
+        num = float(num_str)
+    except ValueError:
+        raise ValueError(f"Invalid number: {num_str}")
+    
+    unit = unit.lower()
+    
+    # Multipliers
+    decimal_multipliers = {
+        '': 1,
+        'b': 1,
+        'kb': 1000,
+        'mb': 1000**2,
+        'gb': 1000**3,
+        'tb': 1000**4,
+        'pb': 1000**5,
+    }
+    binary_multipliers = {
+        '': 1,
+        'b': 1,
+        'kib': 1024,
+        'mib': 1024**2,
+        'gib': 1024**3,
+        'tib': 1024**4,
+        'pib': 1024**5,
+    }
+    base = 1024 if default_binary else 1000
+    gnu_multipliers = {
+        '': 1,
+        'b': 1,
+        'k': base,
+        'm': base**2,
+        'g': base**3,
+        't': base**4,
+        'p': base**5,
+    }
+    
+    if unit in decimal_multipliers:
+        multiplier = decimal_multipliers[unit]
+    elif unit in binary_multipliers:
+        multiplier = binary_multipliers[unit]
+    elif unit in gnu_multipliers and default_gnu:
+        multiplier = gnu_multipliers[unit]
+    else:
+        if strict:
+            raise ValueError(f"Unknown or ambiguous unit: {unit}")
+        else:
+            multiplier = 1  # assume bytes
+    
+    bytes_value = num * multiplier
+    if not math.isfinite(bytes_value):
+        raise ValueError("Invalid value: inf or nan")
+    
+    # Round to int
+    if rounding == "floor":
+        result = math.floor(bytes_value)
+    elif rounding == "ceil":
+        result = math.ceil(bytes_value)
+    elif rounding == "nearest":
+        result = round(bytes_value)
+    else:
+        raise ValueError(f"Invalid rounding mode: {rounding}")
+    
+    return result
