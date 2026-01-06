@@ -1,0 +1,43 @@
+#! /usr/bin/env python3
+"""One-click test runner: installs test deps if needed and runs pytest."""
+from __future__ import annotations
+
+import shutil
+import subprocess
+import sys
+
+required = ("pytest", "pytest-cov")
+python = sys.executable
+
+def ensure_packages(pkgs: tuple[str, ...]) -> None:
+    missing = [p for p in pkgs if shutil.which(p) is None]
+    # The presence of the command is not a reliable indicator on all systems
+    # (for example pytest may be installed but not on PATH). Try importing
+    # instead to be robust.
+    still_missing = []
+    for p in pkgs:
+        try:
+            __import__(p.replace("-", "_"))
+        except Exception:
+            still_missing.append(p)
+
+    if still_missing:
+        cmd = [python, "-m", "pip", "install", *still_missing]
+        print("Installing test dependencies:", " ".join(still_missing))
+        rc = subprocess.run(cmd).returncode
+        if rc != 0:
+            print("failed to install dependencies", file=sys.stderr)
+            raise SystemExit(rc)
+
+
+def main() -> int:
+    ensure_packages(required)
+
+    cmd = [python, "-m", "pytest", "-q"]
+    print("Running:", " ".join(cmd))
+    proc = subprocess.run(cmd)
+    return proc.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
