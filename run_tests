@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""One-click test runner (cross-platform).
+
+Installs test dependencies if missing and runs pytest. Exits with pytest's exit code.
+"""
+import subprocess
+import sys
+
+PY = sys.executable
+
+def run(cmd, **kw):
+    print("+", " ".join(cmd))
+    return subprocess.run(cmd, **kw)
+
+# 1. ensure pip is usable
+rc = run([PY, "-m", "pip", "install", "--upgrade", "pip", "setuptools"], check=False)
+if rc.returncode != 0:
+    print("warning: pip upgrade failed, continuing")
+
+# 2. install dev dependencies (editable install) — idempotent
+rc = run([PY, "-m", "pip", "install", "-e", ".[dev]"], check=False)
+if rc.returncode != 0:
+    print("fallback: installing pytest directly")
+    rc2 = run([PY, "-m", "pip", "install", "pytest", "pytest-cov"], check=False)
+    if rc2.returncode != 0:
+        print("failed to install test dependencies", file=sys.stderr)
+        sys.exit(rc2.returncode)
+
+# 3. run pytest
+p = run([PY, "-m", "pytest", "-q"], check=False)
+sys.exit(p.returncode)
